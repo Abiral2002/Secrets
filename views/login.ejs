@@ -1,0 +1,68 @@
+<%- include('partials/header') %>
+
+<div class="container mt-5">
+  <h1>Login</h1>
+
+  <div class="row">
+    <div class="col-sm-8">
+      <div class="card">
+        <div class="card-body">
+
+          <!-- Makes POST request to /login route -->
+          <form action="/login" method="post">
+            <div class="form-group">
+              <label for="email">Email</label>
+              <input type="email" class="form-control" name="username">
+            </div>
+            <div class="form-group">
+              <label for="password">Password</label>
+              <input type="password" class="form-control" name="password">
+            </div>
+            <input type="submit" class="btn btn-dark" value="LOGIN">
+          </form>
+
+        </div>
+      </div>
+    </div>
+
+    
+
+    <!-- <div class="col-sm-4">
+      <div class="card">
+        <div class="card-body">
+          <a class="btn btn-block" href="/auth/google" role="button">
+            <i class="fab fa-google"></i>
+            Sign In with Google
+          </a>
+        </div>
+      </div>
+    </div> -->
+
+  </div>
+</div>
+<!-- <script>
+  function ajaxreq(form){
+    let username=form.username.value
+    let password=form.password.value
+    sendvalue={
+      username:username,
+      password:password
+    }
+    console.log(sendvalue)
+    var xhr=new XMLHttpRequest()
+    xhr.open("POST","http://127.0.0.1:6500/login",true)
+    xhr.setRequestHeader("Content-type",'application/x-www-form-urlencoded')
+    xhr.onreadystatechange=function(){
+      if(this.status==403 && this.readyState==4){
+        alert(this.response)
+      }
+      else{
+        alert(this.response)
+      }
+    }
+    xhr.send(`username=${username}&password=${password}`)
+  }
+
+</script> -->
+
+<%- include('partials/footer') %>
