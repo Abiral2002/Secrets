@@ -1,5 +1,4 @@
 const mongoose=require("mongoose")
-
 class DatabaseMongo extends mongoose.Mongoose{
     constructor(url,collectionName,schemaModel){
         super()
@@ -27,16 +26,25 @@ class DatabaseMongo extends mongoose.Mongoose{
         
     }
 
-    fetchDatabase(query){
+    addSecret(where,what){
         return new Promise((resolve,reject)=>{
-            this.databaseModel.findOne(query,(err,result)=>{
+            this.databaseModel.updateOne(where,what,(err,result)=>{
+                if(err) reject(err)
+                else resolve(result)
+            })
+        })
+    }
+
+    fetchDatabase(query,options){
+        return new Promise((resolve,reject)=>{
+            this.databaseModel.find(query,options,{},(err,result)=>{
                 if(result){
                     resolve({message:"Success",data:result})
                 }
                 else{
                     reject({message:"Error",data:err})
                 }
-            })    
+            })
         })    
     }
 }
