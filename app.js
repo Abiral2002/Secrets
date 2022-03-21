@@ -8,13 +8,9 @@ const DatabaseMongo=require("./database")
 const session=require("express-session")
 const bcrypt=require("bcrypt")
 const saltRound=10
-const googleapis=require("googleapis")
 const { default: mongoose } = require("mongoose")
 const { default: axios } = require("axios")
 const MongoDBStore = require('connect-mongodb-session')(session);
-const axion=require("axios")
-const querystring=require("querystring")
-const { CodeChallengeMethod } = require("google-auth-library")
 
 
 
@@ -83,11 +79,19 @@ app.use(express.static("public"))
 
 
 /*
+    Router middleware for google auth
+*/
+app.use("/auth/google",require("./routes/googleoath/index"))
+
+
+
+/*
     Get Request handler for request in / path
 */
 app.get('/', (req, res) => {
     res.render("home")
 });
+
 
 
 /*
@@ -97,6 +101,7 @@ app.get('/', (req, res) => {
 app.get("/register",(req,res)=>{
     res.render("register")
 })
+
 
 
 /*
@@ -190,7 +195,6 @@ app.post("/login",async (req,res)=>{
             and stores it into userCredentials veriable
         */
         userCredentials=await databaseUser.fetchDatabase({username:username},{"secrets":0})
-        console.log(userCredentials)
     }
     catch(err){
         /*
@@ -257,113 +261,17 @@ app.post("/register",async (req,res)=>{
     }
     
 })
-/*
-    Makes post request to google to get Token
-    Use axios to make request with client_id client_secret
-    code("From user") and returns a promise
-*/
 
-function getToken(code){
-    return axios.post("https://oauth2.googleapis.com/token",({
-        client_id:process.env.CLIENT_ID,
-        client_secret:process.env.CLIENT_SECRET,
-        code,
-        redirect_uri:"http://localhost:6500/auth/google/config",
-        headers: {
-            "Content-Type": "application/x-www-form-urlencoded",
-          },
-        grant_type: "authorization_code",
-        })
-    )
-}
-
-
-
-/*
-    Makes a get request with axios to google to get 
-    profile information from accesstoken and returns a promise
-*/
-function getProfile(access_token,id_token){
-    return axios.get(
-      `https://www.googleapis.com/oauth2/v1/userinfo?alt=json&access_token=${access_token}`,
-      {
-        headers: {
-          Authorization: `Bearer ${id_token}`,
-        },
-      }
-    )
-}
-
-
-
-/*
-    Finds the data related to google Id if not found creates
-    a account in database
-*/
-function findOrCreate(id,email,req,res){
-    databaseUser.fetchDatabase({username:id},{"secrets":0,"password":0}).then(data=>{
-        if(data.data[0]!==undefined){
-            req.session.user=data.data[0].username
-            res.redirect("/secrets")
-        }
-        else{
-            databaseUser.saveToDataBase({"username":id}).then(data=>{
-                res.redirect("/login")
-
-            })
-        }
-    })
-}
-
-
-
-/*
-    Async function that calls the getToken with code got from auth/google path
-    funciton for access_token and id_token and uses those value
-    to get profile of user with the help of getProfile funciton
-*/
-app.get("/auth/google/config",async (req,res)=>{
-    try{
-        let data=await getToken(req.query.code)
-        // console.log(data.data.access_token)
-        let profileData=await getProfile(data.data.access_token,data.data.id_token)
-        let {id,email}=profileData.data
-        console.log(id)
-        findOrCreate(id,email,req,res)
-    }
-    catch (err){
-        console.log(err)
-        res.redirect("/")
-    }
-})
-
-
-
-/*
-    Get request handler for /auth/google path and redirect
-    user to google account sign in and then get redirected to auth/google/config 
-    with the code for getToken function
-*/
-app.get("/auth/google",async (req,res)=>{
-
-    const options = {
-        redirect_uri:"http://localhost:6500/auth/google/config",
-        client_id: process.env.CLIENT_ID,
-        // client_secret:process.env.CLIENT_SECRET,
-        access_type: "offline",
-        response_type: "code",
-        prompt: "consent",
-        scope: [
-          "https://www.googleapis.com/auth/userinfo.profile",
-          "https://www.googleapis.com/auth/userinfo.email"
-        ].join(" "),
-      };
-    
-      res.redirect(`${"https://accounts.google.com/o/oauth2/v2/auth"}?${querystring.stringify(options)}`)
-})
 
 
 
 app.listen(process.env.PORT || 6500,()=>{
     console.log(`Port open in ${process.env.PORT || 6500}`)
 })
+
+
+/*
+    Export modules
+*/
+
+module.exports.database=databaseUser
