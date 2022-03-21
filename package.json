@@ -11,6 +11,7 @@
   "author": "",
   "license": "ISC",
   "dependencies": {
+    "axios": "^0.26.1",
     "bcrypt": "^5.0.1",
     "connect-mongo": "^4.6.0",
     "connect-mongodb-session": "^3.1.1",
@@ -19,6 +20,7 @@
     "express": "^4.17.3",
     "express-session": "^1.17.2",
     "googleapis": "^97.0.0",
-    "mongoose": "^6.2.5"
+    "mongoose": "^6.2.5",
+    "passport-google-oauth2": "^0.2.0"
   }
 }

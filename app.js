@@ -10,14 +10,19 @@ const bcrypt=require("bcrypt")
 const saltRound=10
 const googleapis=require("googleapis")
 const { default: mongoose } = require("mongoose")
+const { default: axios } = require("axios")
 const MongoDBStore = require('connect-mongodb-session')(session);
+const axion=require("axios")
+const querystring=require("querystring")
+const { CodeChallengeMethod } = require("google-auth-library")
 
 
 
 /*
     Connecting to mongo database
 */
-const databaseUser=new DatabaseMongo("mongodb://localhost:27017/secretUser","users",{
+const databaseUser=new DatabaseMongo(process.env.MONGO_LINK,"users",{
+
     username:String,
     password:String,
     secrets:[{
@@ -41,7 +46,7 @@ var store = new MongoDBStore({
   Middle ware for url parser
 */
 app.use(express.urlencoded({extended:true}))
-
+app.use(express.json())
 
 
 /*
@@ -100,6 +105,10 @@ app.get("/register",(req,res)=>{
 
 */
 app.get("/login",(req,res)=>{
+    if(req.session.user) {
+        res.redirect("/secrets")
+        return
+    }
     res.render("login")
 })
 
@@ -180,7 +189,8 @@ app.post("/login",async (req,res)=>{
             Gets data related tousername sent by the user
             and stores it into userCredentials veriable
         */
-        userCredentials=await databaseUser.fetchDatabase({username:username},{"secrets":0}) 
+        userCredentials=await databaseUser.fetchDatabase({username:username},{"secrets":0})
+        console.log(userCredentials)
     }
     catch(err){
         /*
@@ -201,7 +211,6 @@ app.post("/login",async (req,res)=>{
             res.redirect("/secrets")
         }
         else{
-            console.log("Not Success")
             res.status(403).send("Username or password not matched")
         }
     }
@@ -210,7 +219,7 @@ app.post("/login",async (req,res)=>{
         sends 403 error with "Username or password not found message"
     */
     else{
-        res.status(403).send("Username or password not matched")
+        res.status(503).send("Internal server Error")
     }  
 })
 
@@ -249,40 +258,114 @@ app.post("/register",async (req,res)=>{
     
 })
 
+function getToken(code){
+    return axios.post("https://oauth2.googleapis.com/token",({
+        client_id:process.env.CLIENT_ID,
+        client_secret:process.env.CLIENT_SECRET,
+        code,
+        redirect_uri:"http://localhost:6500/auth/google/config",
+        headers: {
+            "Content-Type": "application/x-www-form-urlencoded",
+          },
+        grant_type: "authorization_code",
+        })
+    )
+}
 
+function getProfile(access_token,id_token){
+    return axios.get(
+      `https://www.googleapis.com/oauth2/v1/userinfo?alt=json&access_token=${access_token}`,
+      {
+        headers: {
+          Authorization: `Bearer ${id_token}`,
+        },
+      }
+    )
+}
+
+function findOrCreate(id,email,req,res){
+    databaseUser.fetchDatabase({username:id},{"secrets":0,"password":0}).then(data=>{
+        if(data.data[0]!==undefined){
+            req.session.user=data.data[0].username
+            res.redirect("/secrets")
+        }
+        else{
+            databaseUser.saveToDataBase({"username":id}).then(data=>{
+                res.redirect("/login")
+
+            })
+        }
+    })
+}
+
+/*
+
+*/
+app.get("/auth/google/config",async (req,res)=>{
+    try{
+        let data=await getToken(req.query.code)
+        // console.log(data.data.access_token)
+        let profileData=await getProfile(data.data.access_token,data.data.id_token)
+        let {id,email}=profileData.data
+        console.log(id)
+        findOrCreate(id,email,req,res)
+    }
+    catch (err){
+        console.log(err)
+        res.redirect("/")
+    }
+})
 
 /*
     Get request handler for /auth/google path
     Uses OAUTH protocol to register and login user
 */
-// app.get("/auth/google",async (req,res)=>{
-//     const {google} = require('googleapis');
+app.get("/auth/google",async (req,res)=>{
 
-//     const oauth2Client = new google.auth.OAuth2(
-//         CLIENT_ID,
-//         CLIENT_SECRET,
-//         YOUR_REDIRECT_URL 
-//     );
+    const options = {
+        redirect_uri:"http://localhost:6500/auth/google/config",
+        client_id: process.env.CLIENT_ID,
+        // client_secret:process.env.CLIENT_SECRET,
+        access_type: "offline",
+        response_type: "code",
+        prompt: "consent",
+        scope: [
+          "https://www.googleapis.com/auth/userinfo.profile",
+          "https://www.googleapis.com/auth/userinfo.email"
+        ].join(" "),
+      };
+    
+      res.redirect(`${"https://accounts.google.com/o/oauth2/v2/auth"}?${querystring.stringify(options)}`)
+   
+    // const {google} = require('googleapis');
 
-//     // generate a url that asks permissions for Blogger and Google Calendar scopes
-//     const scopes = [
-//     'https://www.googleapis.com/auth/userinfo.email',
-//     'https://www.googleapis.com/auth/userinfo.profile',
+    // const oauth2Client = new google.auth.OAuth2(
+    //     CLIENT_ID,
+    //     CLIENT_SECRET,
+    //     YOUR_REDIRECT_URL 
+    // );
 
-//     ];
+    // // generate a url that asks permissions for Blogger and Google Calendar scopes
+    // const scopes = [
+    // 'https://www.googleapis.com/auth/userinfo.email',
+    // 'https://www.googleapis.com/auth/userinfo.profile',
 
-//     const url = oauth2Client.generateAuthUrl({
-//         // 'online' (default) or 'offline' (gets refresh_token)
-//         access_type: 'offline',
+    // ];
 
-//         // If you only need one scope you can pass it as a string
-//         scope: scopes
-//     });
+    // const url = oauth2Client.generateAuthUrl({
+    //     // 'online' (default) or 'offline' (gets refresh_token)
+    //     access_type: 'offline',
 
-//     const tokens= oauth2Client.getToken()
-//     oauth2Client.setCredentials(tokens);
+    //     // If you only need one scope you can pass it as a string
+    //     scope: scopes
+    // });
 
-// })
+    // const tokens= oauth2Client.getToken()
+    // oauth2Client.setCredentials(tokens);
+
+})
+
+
 
 app.listen(process.env.PORT || 6500,()=>{
     console.log(`Port open in ${process.env.PORT || 6500}`)
