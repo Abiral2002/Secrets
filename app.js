@@ -257,6 +257,11 @@ app.post("/register",async (req,res)=>{
     }
     
 })
+/*
+    Makes post request to google to get Token
+    Use axios to make request with client_id client_secret
+    code("From user") and returns a promise
+*/
 
 function getToken(code){
     return axios.post("https://oauth2.googleapis.com/token",({
@@ -272,6 +277,12 @@ function getToken(code){
     )
 }
 
+
+
+/*
+    Makes a get request with axios to google to get 
+    profile information from accesstoken and returns a promise
+*/
 function getProfile(access_token,id_token){
     return axios.get(
       `https://www.googleapis.com/oauth2/v1/userinfo?alt=json&access_token=${access_token}`,
@@ -283,6 +294,12 @@ function getProfile(access_token,id_token){
     )
 }
 
+
+
+/*
+    Finds the data related to google Id if not found creates
+    a account in database
+*/
 function findOrCreate(id,email,req,res){
     databaseUser.fetchDatabase({username:id},{"secrets":0,"password":0}).then(data=>{
         if(data.data[0]!==undefined){
@@ -298,8 +315,12 @@ function findOrCreate(id,email,req,res){
     })
 }
 
-/*
 
+
+/*
+    Async function that calls the getToken with code got from auth/google path
+    funciton for access_token and id_token and uses those value
+    to get profile of user with the help of getProfile funciton
 */
 app.get("/auth/google/config",async (req,res)=>{
     try{
@@ -316,9 +337,12 @@ app.get("/auth/google/config",async (req,res)=>{
     }
 })
 
+
+
 /*
-    Get request handler for /auth/google path
-    Uses OAUTH protocol to register and login user
+    Get request handler for /auth/google path and redirect
+    user to google account sign in and then get redirected to auth/google/config 
+    with the code for getToken function
 */
 app.get("/auth/google",async (req,res)=>{
 
@@ -336,33 +360,6 @@ app.get("/auth/google",async (req,res)=>{
       };
     
       res.redirect(`${"https://accounts.google.com/o/oauth2/v2/auth"}?${querystring.stringify(options)}`)
-   
-    // const {google} = require('googleapis');
-
-    // const oauth2Client = new google.auth.OAuth2(
-    //     CLIENT_ID,
-    //     CLIENT_SECRET,
-    //     YOUR_REDIRECT_URL 
-    // );
-
-    // // generate a url that asks permissions for Blogger and Google Calendar scopes
-    // const scopes = [
-    // 'https://www.googleapis.com/auth/userinfo.email',
-    // 'https://www.googleapis.com/auth/userinfo.profile',
-
-    // ];
-
-    // const url = oauth2Client.generateAuthUrl({
-    //     // 'online' (default) or 'offline' (gets refresh_token)
-    //     access_type: 'offline',
-
-    //     // If you only need one scope you can pass it as a string
-    //     scope: scopes
-    // });
-
-    // const tokens= oauth2Client.getToken()
-    // oauth2Client.setCredentials(tokens);
-
 })
 
 
