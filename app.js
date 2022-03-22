@@ -9,7 +9,6 @@ const session=require("express-session")
 const bcrypt=require("bcrypt")
 const saltRound=10
 const { default: mongoose } = require("mongoose")
-const { default: axios } = require("axios")
 const MongoDBStore = require('connect-mongodb-session')(session);
 
 
