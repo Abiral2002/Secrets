@@ -88,7 +88,7 @@ router.get("/config",async (req,res)=>{
     user to google account sign in and then get redirected to auth/google/config 
     with the code for getToken function
 */
-router.get("/",async (req,res)=>{
+router.get("/",(req,res)=>{
 
     const options = {
         redirect_uri:"http://localhost:6500/auth/google/config",

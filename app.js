@@ -8,7 +8,6 @@ const DatabaseMongo=require("./database")
 const session=require("express-session")
 const bcrypt=require("bcrypt")
 const saltRound=10
-const { default: mongoose } = require("mongoose")
 const MongoDBStore = require('connect-mongodb-session')(session);
 
 
@@ -272,5 +271,4 @@ app.listen(process.env.PORT || 6500,()=>{
 /*
     Export modules
 */
-
 module.exports.database=databaseUser
