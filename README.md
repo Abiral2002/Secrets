@@ -2,7 +2,7 @@
 
 Web app to share your secrets 
 
-Technologed used:
+Technologies used:
 - Node Js
 - Express Js
 - Mongo DB
